@@ -14,6 +14,17 @@
       ]
     }
   ],
+  "aimore.light.cw3201": [
+    {
+      "iid": 2,
+      "properties": [
+        {
+          "iid": 5,
+          "unit": "kelvin"
+        }
+      ]
+    }
+  ],
   "ainice.motion.bt": [
     {
       "iid": 2,
@@ -1586,6 +1597,28 @@
         {
           "iid": 2,
           "value-range": [1, 100, 1]
+        }
+      ]
+    }
+  ],
+  
+  "zhimi.humidifier.ca4": [
+    {
+      "iid": 2,
+      "properties": [
+        {
+          "iid": 7,
+          "unit": "percentage",
+          "value-range": [0, 100, 1]
+        }
+      ]
+    },
+    {
+      "iid": 7,
+      "properties": [
+        {
+          "iid": 1,
+          "unit": "rpm"
         }
       ]
     }

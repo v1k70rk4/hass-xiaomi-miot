@@ -14,7 +14,19 @@ from homeassistant import (
     core as hass_core,
     config_entries,
 )
-from homeassistant.const import *
+from homeassistant.const import (
+    ATTR_ENTITY_ID,
+    CONF_HOST,
+    CONF_NAME,
+    CONF_PASSWORD,
+    CONF_SCAN_INTERVAL,
+    CONF_TOKEN,
+    CONF_USERNAME,
+    STATE_OFF,
+    STATE_ON,
+    STATE_UNKNOWN,
+    SERVICE_RELOAD,
+)
 from homeassistant.config import DATA_CUSTOMIZE
 from homeassistant.exceptions import PlatformNotReady
 from homeassistant.helpers.entity import (
@@ -2094,7 +2106,7 @@ class MiotEntity(MiioEntity):
                         from .text import MiotTextActionSubEntity
                         self._subs[fnm] = MiotTextActionSubEntity(self, p, option=opt)
                         add_texts([self._subs[fnm]])
-                elif add_buttons and domain == 'button' and p.value_list:
+                elif add_buttons and domain == 'button' and (p.value_list or p.is_bool):
                     from .button import MiotButtonSubEntity
                     nls = []
                     f = fnm
@@ -2106,6 +2118,9 @@ class MiotEntity(MiioEntity):
                             continue
                         self._subs[f] = MiotButtonSubEntity(self, p, vk, option=opt)
                         nls.append(self._subs[f])
+                    if p.is_bool:
+                        self._subs[f] = MiotButtonSubEntity(self, p, True, option=opt)
+                        nls.append(self._subs[f])
                     if nls:
                         add_buttons(nls, update_before_add=True)
                         new = True
@@ -2115,7 +2130,7 @@ class MiotEntity(MiioEntity):
                 elif add_switches and domain == 'switch' and (p.format in ['bool'] or p.value_list) and p.writeable:
                     self._subs[fnm] = MiotSwitchSubEntity(self, p, option=opt)
                     add_switches([self._subs[fnm]], update_before_add=True)
-                elif add_binary_sensors and domain == 'binary_sensor' and p.format == 'bool':
+                elif add_binary_sensors and domain == 'binary_sensor' and p.is_bool:
                     self._subs[fnm] = MiotBinarySensorSubEntity(self, p, option=opt)
                     add_binary_sensors([self._subs[fnm]], update_before_add=True)
                 elif add_sensors and domain == 'sensor':

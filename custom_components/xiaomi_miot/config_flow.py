@@ -6,7 +6,14 @@ import requests
 import voluptuous as vol
 
 from homeassistant import config_entries
-from homeassistant.const import *
+from homeassistant.const import (
+    CONF_HOST,
+    CONF_NAME,
+    CONF_PASSWORD,
+    CONF_SCAN_INTERVAL,
+    CONF_TOKEN,
+    CONF_USERNAME,
+)
 from homeassistant.core import callback, split_entity_id
 from homeassistant.util import yaml
 from homeassistant.components import persistent_notification
@@ -623,6 +630,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 vol.In(CONN_MODES),
             vol.Optional('renew_devices', default=user_input.get('renew_devices', False)): bool,
             vol.Optional('disable_message', default=user_input.get('disable_message', False)): bool,
+            vol.Optional('disable_scene_history', default=user_input.get('disable_scene_history', False)): bool,
         })
         return self.async_show_form(
             step_id='cloud',
@@ -646,6 +654,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             cfg.update({
                 CONF_CONN_MODE: prev_input.get(CONF_CONN_MODE),
                 'disable_message': prev_input.get('disable_message'),
+                'disable_scene_history': prev_input.get('disable_scene_history'),
                 **(user_input or {}),
             })
             self.hass.config_entries.async_update_entry(
@@ -737,7 +746,7 @@ def get_customize_options(hass, options={}, bool2selects=[], entity_id='', model
         })
 
     if domain == 'climate' or re.search(r'aircondition|acpartner|airrtc', model, re.I):
-        bool2selects.extend(['ignore_fan_switch'])
+        bool2selects.extend(['ignore_fan_switch', 'target2current_temp'])
         options.update({
             'bind_sensor': cv.string,
             'turn_on_hvac': cv.string,
@@ -770,6 +779,11 @@ def get_customize_options(hass, options={}, bool2selects=[], entity_id='', model
 
     if domain == 'number':
         bool2selects.extend(['restore_state'])
+
+    if domain == 'humidifier':
+        options.update({
+            'mode_property': cv.string,
+        })
 
     if domain == 'device_tracker' or re.search(r'watch', model, re.I):
         options.update({

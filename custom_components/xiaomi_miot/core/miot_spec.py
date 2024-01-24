@@ -5,7 +5,20 @@ import random
 import time
 import re
 
-from homeassistant.const import *
+from homeassistant.const import (
+    CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
+    CONCENTRATION_MILLIGRAMS_PER_CUBIC_METER,
+    CONCENTRATION_PARTS_PER_CUBIC_METER,
+    CONCENTRATION_PARTS_PER_MILLION,
+    LIGHT_LUX,
+    PERCENTAGE,
+    UnitOfElectricCurrent,
+    UnitOfElectricPotential,
+    UnitOfEnergy,
+    UnitOfPower,
+    UnitOfPressure,
+    UnitOfTemperature,
+)
 from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -726,6 +739,10 @@ class MiotProperty(MiotSpecInstance):
         return None
 
     @property
+    def is_bool(self):
+        return self.format == 'bool'
+
+    @property
     def is_integer(self):
         if self.format in [
             'int8', 'int16', 'int32', 'int64',
@@ -741,12 +758,13 @@ class MiotProperty(MiotSpecInstance):
         name = self.name
         unit = self.unit
         aliases = {
-            'celsius': TEMP_CELSIUS,
-            'fahrenheit': TEMP_FAHRENHEIT,
-            'kelvin': TEMP_KELVIN,
+            'celsius': UnitOfTemperature.CELSIUS,
+            'fahrenheit': UnitOfTemperature.FAHRENHEIT,
+            'kelvin': UnitOfTemperature.KELVIN,
             'percentage': PERCENTAGE,
             'lux': LIGHT_LUX,
-            'watt': POWER_WATT,
+            'watt': UnitOfPower.WATT,
+            'pascal': UnitOfPressure.PA,
             'μg/m3': CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
             'mg/m3': CONCENTRATION_MILLIGRAMS_PER_CUBIC_METER,
             'p/m3': CONCENTRATION_PARTS_PER_CUBIC_METER,
@@ -754,17 +772,19 @@ class MiotProperty(MiotSpecInstance):
         names = {
             'current_step_count': 'steps',
             'heart_rate': 'bpm',
-            'power_consumption': ENERGY_WATT_HOUR,
+            'power_consumption': UnitOfEnergy.WATT_HOUR,
+            'electric_current': UnitOfElectricCurrent.AMPERE,
+            'voltage': UnitOfElectricPotential.VOLT,
             'pm2_5_density': CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
             'tds_in': CONCENTRATION_PARTS_PER_MILLION,
             'tds_out': CONCENTRATION_PARTS_PER_MILLION,
         }
-        if name in names:
+        if unit in aliases:
+            unit = aliases[unit]
+        elif name in names:
             unit = names[name]
         elif not unit or unit in ['none', 'null']:
             unit = None
-        elif unit in aliases:
-            unit = aliases[unit]
         return unit
 
     @property

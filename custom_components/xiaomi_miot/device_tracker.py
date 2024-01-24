@@ -3,11 +3,10 @@ import logging
 import time
 from datetime import timedelta
 
-from homeassistant.const import *  # noqa: F401
 from homeassistant.components.device_tracker import (
     DOMAIN as ENTITY_DOMAIN,
 )
-from homeassistant.components.device_tracker.const import SOURCE_TYPE_GPS
+from homeassistant.components.device_tracker.const import SourceType
 from homeassistant.components.device_tracker.config_entry import TrackerEntity
 
 from . import (
@@ -108,7 +107,7 @@ class MiotTrackerEntity(MiotEntity, TrackerEntity):
     @property
     def source_type(self):
         """Return the source type, eg gps or router, of the device."""
-        return SOURCE_TYPE_GPS
+        return SourceType.GPS
 
     @property
     def latitude(self):
@@ -183,19 +182,36 @@ class XiaoxunWatchTrackerEntity(MiotTrackerEntity):
         rdt = await mic.async_request_api('third/api', pms) or {}
         loc = {}
         for v in (rdt.get('result') or {}).get('PL', {}).get('List', {}).values():
-            loc = v.get('result', {})
-            break
+            if loc := v.get('result') or {}:
+                loc.setdefault('device', v)
+                loc.setdefault('timestamp', v.get('timestamp', ''))
+                break
         if not loc:
             self.logger.warning('%s: Got xiaoxun watch location faild: %s', self.name_model, rdt)
             return
         self.logger.debug('%s: Got xiaoxun watch location: %s', self.name_model, rdt)
+        dvc = loc.get('device') or {}
         gps = f"{loc.get('location', '')},".split(',')
         self._attr_latitude = float(gps[1])
         self._attr_longitude = float(gps[0])
         self._attr_location_name = loc.get('desc')
         self._attr_location_accuracy = int(loc.get('radius') or 0)
         await self.transform_coord(default='gcj02')
-        tim = loc.get('timestamp', '')
         self.update_attrs({
-            'timestamp': f'{tim[0:4]}-{tim[4:6]}-{tim[6:8]} {tim[8:10]}:{tim[10:12]}:{tim[12:14]}',
+            'sos': dvc.get('SOS', 0),
+            'steps': dvc.get('steps', 0),
+            'home_wifi': dvc.get('home_wifi', 0),
+            'imei': dvc.get('imei'),
+            'adcode': loc.get('adcode'),
+            'country': loc.get('country'),
+            'province': loc.get('province'),
+            'city': loc.get('province'),
+            'district': loc.get('district'),
+            'township': loc.get('township'),
+            'road': loc.get('road'),
+            'street': loc.get('street'),
         })
+        if tim := loc.get('timestamp', ''):
+            self.update_attrs({
+                'timestamp': f'{tim[0:4]}-{tim[4:6]}-{tim[6:8]} {tim[8:10]}:{tim[10:12]}:{tim[12:14]}',
+            })

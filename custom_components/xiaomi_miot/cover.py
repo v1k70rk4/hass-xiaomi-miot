@@ -5,7 +5,11 @@ from enum import Enum
 from functools import partial
 from datetime import timedelta
 
-from homeassistant.const import *  # noqa: F401
+from homeassistant.const import (
+    CONF_NAME,
+    CONF_HOST,
+    CONF_TOKEN,
+)
 from homeassistant.core import callback
 from homeassistant.components.cover import (
     DOMAIN as ENTITY_DOMAIN,
@@ -108,14 +112,8 @@ class MiotCoverEntity(MiotEntity, CoverEntity):
 
         self._motor_reverse = self.custom_config_bool('motor_reverse', False)
         self._position_reverse = self.custom_config_bool('position_reverse', self._motor_reverse)
-        self._open_texts = [
-            *(self.custom_config_list('open_texts') or []),
-            'Opening', 'Opened', 'Open', 'Up', 'Rising', 'Risen', 'Rise',
-        ]
-        self._close_texts = [
-            *(self.custom_config_list('close_texts') or []),
-            'Closing', 'Closed', 'Close', 'Down', 'Falling', 'Descent',
-        ]
+        self._open_texts = self.custom_config_list('open_texts', ['Opening', 'Opened', 'Open', 'Up', 'Rising', 'Risen', 'Rise'])
+        self._close_texts = self.custom_config_list('close_texts', ['Closing', 'Closed', 'Close', 'Down', 'Falling', 'Descent'])
         if self._motor_reverse:
             self._open_texts, self._close_texts = self._close_texts, self._open_texts
 
@@ -170,6 +168,11 @@ class MiotCoverEntity(MiotEntity, CoverEntity):
             elif range_max != 100:
                 pos = cur / range_max * 100
         if pos < 0:
+            # If the motor controller is stopped, generate fake middle position
+            if self._prop_status:
+                sta = int(self._prop_status.from_dict(self._state_attrs) or -1)
+                if sta in self._prop_status.list_search('Stopped'):
+                    return 50
             return None
         dev = int(self.custom_config_integer('deviated_position', 1) or 0)
         if pos <= dev:
